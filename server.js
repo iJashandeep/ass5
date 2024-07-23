@@ -12,23 +12,23 @@
 *
 ********************************************************************************/
 
-app.use(express.static(__dirname + '/public'));
-app.set('views', path.join(__dirname, '/views'));
-
-
 const express = require('express');
 const path = require('path');
-const legoData = require('./modules/legoSets');
-const pg = require('pg'); // Explicitly require the "pg" module
-const app = express();
+const legoData = require('./modules/legoSets'); // Ensure this module does not create circular dependencies
 
+const app = express();
 const HTTP_PORT = process.env.PORT || 8080;
 
+// Set view engine
 app.set('view engine', 'ejs');
-app.set('views', path.join(__dirname, 'views')); // Set the views directory
+app.set('views', path.join(__dirname, 'views'));
 
-app.use(express.static(path.join(__dirname, 'public'))); // Serve static files from public
+// Middleware
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+
+
+
 
 app.use((req, res, next) => {
   res.locals.page = req.url;
@@ -112,8 +112,11 @@ app.use((req, res) => {
   res.status(404).render('404', { message: 'The page you requested does not exist.' });
 });
 
-legoData.initialize().then(() => {
-  app.listen(HTTP_PORT, () => console.log(`Server listening on: ${HTTP_PORT}`));
-}).catch((err) => {
-  console.log(err);
-});
+// Initialize database and start server
+legoData.initialize()
+  .then(() => {
+    app.listen(HTTP_PORT, () => console.log(`Server listening on port ${HTTP_PORT}`));
+  })
+  .catch(err => {
+    console.error("Failed to initialize database:", err);
+  });
