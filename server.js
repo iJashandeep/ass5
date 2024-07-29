@@ -41,8 +41,13 @@ app.get('/about', (req, res) => {
 });
 
 app.get('/lego/addSet', async (req, res) => {
-  let themes = await legoData.getAllThemes();
-  res.render('addSet', { themes: themes });
+  try {
+    let themes = await legoData.getAllThemes();
+    res.render('addSet', { themes: themes });
+  } catch (err) {
+    console.error('Error in /lego/addSet:', err);
+    res.status(500).render('500', { message: 'An error occurred while retrieving themes.' });
+  }
 });
 
 app.post('/lego/addSet', async (req, res) => {
@@ -50,8 +55,9 @@ app.post('/lego/addSet', async (req, res) => {
     await legoData.addSet(req.body);
     res.redirect("/lego/sets");
   } catch (err) {
+    console.error('Error in /lego/addSet POST:', err);
     const errorMessage = err.message || 'An unknown error occurred.';
-    res.render('500', { message: `I'm sorry, but we have encountered the following error: ${errorMessage}` });
+    res.status(500).render('500', { message: `I'm sorry, but we have encountered the following error: ${errorMessage}` });
   }
 });
 
@@ -59,9 +65,9 @@ app.get('/lego/editSet/:num', async (req, res) => {
   try {
     let set = await legoData.getSetByNum(req.params.num);
     let themes = await legoData.getAllThemes();
-
     res.render("editSet", { set, themes });
   } catch (err) {
+    console.error('Error in /lego/editSet/:num:', err);
     res.status(404).render("404", { message: err.message || 'Unable to find the requested set.' });
   }
 });
@@ -71,22 +77,22 @@ app.post("/lego/editSet", async (req, res) => {
     await legoData.editSet(req.body.set_num, req.body);
     res.redirect("/lego/sets");
   } catch (err) {
-    res.render("500", { message: `I'm sorry, but we have encountered the following error ${err.message || 'An unknown error occurred.'}` });
+    console.error('Error in /lego/editSet POST:', err);
+    res.status(500).render("500", { message: `I'm sorry, but we have encountered the following error ${err.message || 'An unknown error occurred.'}` });
   }
 });
 
 app.get("/lego/sets", async (req, res) => {
-  let sets = [];
-
   try {
+    let sets = [];
     if (req.query.theme) {
       sets = await legoData.getSetsByTheme(req.query.theme);
     } else {
       sets = await legoData.getAllSets();
     }
-
     res.render("sets", { sets });
   } catch (err) {
+    console.error('Error in /lego/sets:', err);
     res.status(404).render("404", { message: err.message || 'Unable to find the requested sets.' });
   }
 });
@@ -96,6 +102,7 @@ app.get("/lego/sets/:num", async (req, res) => {
     let set = await legoData.getSetByNum(req.params.num);
     res.render("set", { set });
   } catch (err) {
+    console.error('Error in /lego/sets/:num:', err);
     res.status(404).render("404", { message: err.message || 'Unable to find the requested set.' });
   }
 });
@@ -105,7 +112,8 @@ app.get("/lego/deleteSet/:num", (req, res) => {
     res.redirect("/lego/sets");
   })
   .catch((err) => {
-    res.render("500", { message: `I'm sorry, but we have encountered the following error: ${err.message || 'An unknown error occurred.'}` });
+    console.error('Error in /lego/deleteSet/:num:', err);
+    res.status(500).render("500", { message: `I'm sorry, but we have encountered the following error: ${err.message || 'An unknown error occurred.'}` });
   });
 });
 
