@@ -16,16 +16,16 @@ const path = require("path");
 const express = require('express');
 const app = express();
 
-require('dotenv').config(); // Ensure dotenv is required to load environment variables
+// Explicitly require 'pg' to ensure it's loaded properly
 require('pg');
 
 const HTTP_PORT = process.env.PORT || 8080;
 
 // Set the views directory
-app.set('views', path.join(__dirname, 'views')); // Use path.join for cross-platform compatibility
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-// Serve static files from the 'public' directory
+// Update express.static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
 
@@ -34,7 +34,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Define your routes
 app.get('/', (req, res) => {
   res.render("home");
 });
@@ -48,8 +47,8 @@ app.get('/lego/addSet', async (req, res) => {
     let themes = await legoData.getAllThemes();
     res.render('addSet', { themes: themes });
   } catch (err) {
-    console.error('Error in /lego/addSet:', err);
-    res.status(500).render('500', { message: 'An error occurred while retrieving themes.' });
+    console.error('Error fetching themes for addSet:', err);
+    res.render('500', { message: `I'm sorry, but we have encountered the following error: ${err.message}` });
   }
 });
 
@@ -58,9 +57,8 @@ app.post('/lego/addSet', async (req, res) => {
     await legoData.addSet(req.body);
     res.redirect("/lego/sets");
   } catch (err) {
-    console.error('Error in /lego/addSet POST:', err);
-    const errorMessage = err.message || 'An unknown error occurred.';
-    res.status(500).render('500', { message: `I'm sorry, but we have encountered the following error: ${errorMessage}` });
+    console.error('Error adding set:', err);
+    res.render('500', { message: `I'm sorry, but we have encountered the following error: ${err.message}` });
   }
 });
 
@@ -70,8 +68,8 @@ app.get('/lego/editSet/:num', async (req, res) => {
     let themes = await legoData.getAllThemes();
     res.render("editSet", { set, themes });
   } catch (err) {
-    console.error('Error in /lego/editSet/:num:', err);
-    res.status(404).render("404", { message: err.message || 'Unable to find the requested set.' });
+    console.error('Error fetching set or themes for editSet:', err);
+    res.status(404).render("404", { message: err.message });
   }
 });
 
@@ -80,23 +78,20 @@ app.post("/lego/editSet", async (req, res) => {
     await legoData.editSet(req.body.set_num, req.body);
     res.redirect("/lego/sets");
   } catch (err) {
-    console.error('Error in /lego/editSet POST:', err);
-    res.status(500).render("500", { message: `I'm sorry, but we have encountered the following error ${err.message || 'An unknown error occurred.'}` });
+    console.error('Error editing set:', err);
+    res.render("500", { message: `I'm sorry, but we have encountered the following error: ${err.message}` });
   }
 });
 
 app.get("/lego/sets", async (req, res) => {
   try {
-    let sets = [];
-    if (req.query.theme) {
-      sets = await legoData.getSetsByTheme(req.query.theme);
-    } else {
-      sets = await legoData.getAllSets();
-    }
+    let sets = req.query.theme
+      ? await legoData.getSetsByTheme(req.query.theme)
+      : await legoData.getAllSets();
     res.render("sets", { sets });
   } catch (err) {
-    console.error('Error in /lego/sets:', err);
-    res.status(404).render("404", { message: err.message || 'Unable to find the requested sets.' });
+    console.error('Error fetching sets:', err);
+    res.status(404).render("404", { message: err.message });
   }
 });
 
@@ -105,27 +100,24 @@ app.get("/lego/sets/:num", async (req, res) => {
     let set = await legoData.getSetByNum(req.params.num);
     res.render("set", { set });
   } catch (err) {
-    console.error('Error in /lego/sets/:num:', err);
-    res.status(404).render("404", { message: err.message || 'Unable to find the requested set.' });
+    console.error('Error fetching set by number:', err);
+    res.status(404).render("404", { message: err.message });
   }
 });
 
 app.get("/lego/deleteSet/:num", (req, res) => {
-  legoData.deleteSet(req.params.num).then(() => {
-    res.redirect("/lego/sets");
-  })
-  .catch((err) => {
-    console.error('Error in /lego/deleteSet/:num:', err);
-    res.status(500).render("500", { message: `I'm sorry, but we have encountered the following error: ${err.message || 'An unknown error occurred.'}` });
-  });
+  legoData.deleteSet(req.params.num)
+    .then(() => res.redirect("/lego/sets"))
+    .catch((err) => {
+      console.error('Error deleting set:', err);
+      res.render("500", { message: `I'm sorry, but we have encountered the following error: ${err.message}` });
+    });
 });
 
 app.use((req, res) => {
   res.status(404).render("404", { message: "The page you requested does not exist." });
 });
 
-legoData.initialize().then(() => {
-  app.listen(HTTP_PORT, () => console.log(`Server listening on port ${HTTP_PORT}`));
-}).catch((err) => {
-  console.error('Error initializing the database:', err);
-});
+legoData.initialize()
+  .then(() => app.listen(HTTP_PORT, () => console.log(`Server listening on port ${HTTP_PORT}`)))
+  .catch((err) => console.error('Error initializing the database:', err));

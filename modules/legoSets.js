@@ -1,5 +1,6 @@
 require('dotenv').config();
 const Sequelize = require('sequelize');
+require('pg'); // Explicitly require the 'pg' module
 
 const sequelize = new Sequelize(
   process.env.database,
