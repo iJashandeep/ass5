@@ -15,12 +15,14 @@ const legoData = require("./modules/legoSets");
 const path = require("path");
 const express = require('express');
 const app = express();
+
 require('dotenv').config(); // Ensure dotenv is required to load environment variables
+require('pg');
 
 const HTTP_PORT = process.env.PORT || 8080;
 
 // Set the views directory
-app.set('views', path.join(__dirname, 'views')); // Use path.join for better cross-platform compatibility
+app.set('views', path.join(__dirname, 'views')); // Use path.join for cross-platform compatibility
 app.set('view engine', 'ejs');
 
 // Serve static files from the 'public' directory
@@ -32,6 +34,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Define your routes
 app.get('/', (req, res) => {
   res.render("home");
 });
