@@ -22,12 +22,13 @@ require('pg');
 const HTTP_PORT = process.env.PORT || 8080;
 
 // Set the views directory
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
+//app.set('views', path.join(__dirname, 'views'));
+//app.set('view engine', 'ejs');
 
 // Update express.static middleware
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.urlencoded({ extended: true }));
+app.set('view engine', 'ejs');
 
 app.use((req, res, next) => {
   res.locals.page = req.url;
